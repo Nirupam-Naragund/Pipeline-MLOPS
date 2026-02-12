@@ -2,6 +2,7 @@ import pandas as pd
 import os
 from sklearn.feature_extraction.text import TfidfVectorizer
 import logging
+import yaml
 
 # Ensure the "logs" directory exists
 log_dir = 'logs'
@@ -24,6 +25,23 @@ file_handler.setFormatter(formatter)
 
 logger.addHandler(console_handler)
 logger.addHandler(file_handler)
+
+def load_params(params_path: str) -> dict:
+    """Load parameters from a YAML file."""
+    try:
+        with open(params_path, 'r') as file:
+            params = yaml.safe_load(file)
+        logger.debug('Parameters retrieved from %s', params_path)
+        return params
+    except FileNotFoundError:
+        logger.error('File not found: %s', params_path)
+        raise
+    except yaml.YAMLError as e:
+        logger.error('YAML error: %s', e)
+        raise
+    except Exception as e:
+        logger.error('Unexpected error: %s', e)
+        raise
 
 def load_data(file_path: str) -> pd.DataFrame:
     """Load data from a CSV file."""
@@ -49,7 +67,6 @@ def apply_tfidf(train_data: pd.DataFrame, test_data: pd.DataFrame, max_features:
         X_test = test_data['text'].values
         y_test = test_data['target'].values
 
-        # Fit on train, transform both
         X_train_bow = vectorizer.fit_transform(X_train)
         X_test_bow = vectorizer.transform(X_test)
 
@@ -59,10 +76,10 @@ def apply_tfidf(train_data: pd.DataFrame, test_data: pd.DataFrame, max_features:
         test_df = pd.DataFrame(X_test_bow.toarray())
         test_df['label'] = y_test
 
-        logger.debug('TF-IDF applied and data transformed with max_features=%d', max_features)
+        logger.debug('tfidf applied and data transformed')
         return train_df, test_df
     except Exception as e:
-        logger.error('Error during TF-IDF transformation: %s', e)
+        logger.error('Error during Bag of Words transformation: %s', e)
         raise
 
 def save_data(df: pd.DataFrame, file_path: str) -> None:
@@ -77,22 +94,17 @@ def save_data(df: pd.DataFrame, file_path: str) -> None:
 
 def main():
     try:
-        # Hardcoded parameters (Replaced YAML)
-        max_features = 3000 
-        
-        train_input_path = './data/interim/train_processed.csv'
-        test_input_path = './data/interim/test_processed.csv'
-        
-        train_data = load_data(train_input_path)
-        test_data = load_data(test_input_path)
+        params = load_params(params_path='params.yaml')
+        max_features = params['feature_engineering']['max_features']
+        # max_features = 50
+
+        train_data = load_data('./data/interim/train_processed.csv')
+        test_data = load_data('./data/interim/test_processed.csv')
 
         train_df, test_df = apply_tfidf(train_data, test_data, max_features)
 
         save_data(train_df, os.path.join("./data", "processed", "train_tfidf.csv"))
         save_data(test_df, os.path.join("./data", "processed", "test_tfidf.csv"))
-        
-        print("Feature engineering completed successfully.")
-        
     except Exception as e:
         logger.error('Failed to complete the feature engineering process: %s', e)
         print(f"Error: {e}")
