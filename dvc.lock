@@ -7,6 +7,9 @@ stages:
       hash: md5
       md5: 5150d3b1f77e287f19bd4e3a4cbbba60
       size: 3639
+    params:
+      params.yaml:
+        data_ingestion.test_size: 0.2
     outs:
     - path: data/raw
       hash: md5
@@ -43,6 +46,9 @@ stages:
       hash: md5
       md5: cf8448c21ab5f64a81b288de0c331814
       size: 3910
+    params:
+      params.yaml:
+        feature_engineering.max_features: 35
     outs:
     - path: data/processed
       hash: md5
@@ -61,6 +67,10 @@ stages:
       hash: md5
       md5: b8211d4fca24abd0f09602108ec58924
       size: 4423
+    params:
+      params.yaml:
+        model_building.n_estimators: 22
+        model_building.random_state: 2
     outs:
     - path: models/model.pkl
       hash: md5
